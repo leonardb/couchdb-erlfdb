@@ -130,7 +130,7 @@
 -define(IS_SS, {erlfdb_snapshot, _}).
 -define(GET_TX(SS), element(2, SS)).
 -define(ERLFDB_ERROR, '$erlfdb_error').
--define(MAX_ERRORS, 2).
+-define(MAX_ERRORS, 50).
 
 
 -record(fold_st, {
@@ -674,6 +674,7 @@ do_transaction(?IS_TX = Tx, UserFun, ErrRem, _LastErrorCode) ->
     catch error:{erlfdb_error, Code} ->
         put(?ERLFDB_ERROR, Code),
         wait(on_error(Tx, Code), [{timeout, infinity}]),
+        io:format("Retrying because of ~p~n", [Code]),
         do_transaction(Tx, UserFun, ErrRem - 1, Code)
     end.
 
