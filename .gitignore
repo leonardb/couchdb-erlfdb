@@ -12,3 +12,8 @@ ebin/
 priv/erlfdb_nif.*
 priv/couchdb-erlfdb.*
 
+_build
+.idea
+*.iml
+.rebar3
+.erlfdb
