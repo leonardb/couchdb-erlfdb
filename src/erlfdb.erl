@@ -141,7 +141,7 @@
     streaming_mode,
     iteration,
     snapshot,
-    reverse
+    reverse :: 0..1
 }).
 
 
@@ -683,7 +683,10 @@ fold_range_int(?IS_TX = Tx, StartKey, EndKey, Fun, Acc, Options) ->
     St = options_to_fold_st(StartKey, EndKey, Options),
     fold_range_int(Tx, St, Fun, Acc).
 
-
+%%-type fold_st() :: #fold_st{}.
+%%-type fold_info() :: {'fold_info', fold_st(), any()}.
+%%
+%%-spec fold_range_int(erlfdb_nif:transaction(), fold_st() | fold_info(), function(), any()) -> any().
 fold_range_int(Tx, #fold_st{} = St, Fun, Acc) ->
     RangeFuture = fold_range_future_int(Tx, St),
     fold_range_int(Tx, RangeFuture, Fun, Acc);

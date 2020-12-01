@@ -152,13 +152,13 @@
 
 
 -type streaming_mode() ::
-    stream_want_all |
-    stream_iterator |
-    stream_exact |
-    stream_small |
-    stream_medium |
-    stream_large |
-    stream_serial.
+    want_all |
+    iterator |
+    exact |
+    small |
+    medium |
+    large |
+    serial.
 
 -type atomic_mode() ::
     add |
@@ -245,7 +245,7 @@ database_set_option({erlfdb_database, Db}, Opt, Val) ->
 
 
 -spec database_create_transaction(database()) ->
-        {ok, transaction()}.
+        transaction().
 database_create_transaction({erlfdb_database, Db}) ->
     erlfdb_database_create_transaction(Db).
 
@@ -305,7 +305,7 @@ transaction_get_addresses_for_key({erlfdb_transaction, Tx}, Key) ->
         StreamingMode::streaming_mode(),
         Iteration::non_neg_integer(),
         Snapshot::boolean(),
-        Reverse::boolean()
+        Reverse::integer()
     ) -> future().
 transaction_get_range(
         {erlfdb_transaction, Tx},
