@@ -668,11 +668,6 @@ clear_erlfdb_error() ->
     put(?ERLFDB_ERROR, undefined).
 
 do_transaction(?IS_TX = Tx, UserFun) ->
-    do_transaction(Tx, UserFun, ?MAX_ERRORS, undefined).
-
-do_transaction(?IS_TX = _Tx, _UserFun, 0, LastErrorCode) ->
-    {erlfdb_error, LastErrorCode};
-do_transaction(?IS_TX = Tx, UserFun, ErrRem, _LastErrorCode) ->
     try
         Ret = UserFun(Tx),
         case is_read_only(Tx) andalso not has_watches(Tx) of
@@ -683,8 +678,7 @@ do_transaction(?IS_TX = Tx, UserFun, ErrRem, _LastErrorCode) ->
     catch error:{erlfdb_error, Code} ->
         put(?ERLFDB_ERROR, Code),
         wait(on_error(Tx, Code), [{timeout, infinity}]),
-        io:format("Retrying because of ~p~n", [Code]),
-        do_transaction(Tx, UserFun, ErrRem - 1, Code)
+        do_transaction(Tx, UserFun)
     end.
 
 
