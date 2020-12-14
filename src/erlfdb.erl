@@ -786,6 +786,7 @@ options_to_fold_st(StartKey, EndKey, Options) ->
 
 
 flush_future_message(?IS_FUTURE = Future) ->
+    erlfdb_nif:future_silence(Future),
     {erlfdb_future, MsgRef, _Res} = Future,
     receive
         {MsgRef, ready} -> ok
