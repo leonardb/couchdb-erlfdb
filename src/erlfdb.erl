@@ -791,5 +791,5 @@ flush_future_message(?IS_FUTURE = Future) ->
     receive
         {MsgRef, ready} -> ok
     after
-        500 -> ok
+        0 -> ok
     end.
