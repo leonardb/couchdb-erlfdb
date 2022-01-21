@@ -13,9 +13,12 @@
 -module(erlfdb_nif).
 
 -compile(no_native).
--on_load(init/0).
+%%-on_load(init/0).
 
 -export([
+    init/0,
+    init/1,
+
     ohai/0,
 
     get_max_api_version/0,
@@ -432,6 +435,9 @@ option_val_to_binary(Val) when is_integer(Val) ->
     <<Val:8/little-unsigned-integer-unit:8>>.
 
 init() ->
+    init([]).
+
+init(NetworkOptions) ->
     PrivDir =
         case code:priv_dir(?MODULE) of
             {error, _} ->
@@ -455,11 +461,7 @@ init() ->
                 end,
             ok = select_api_version(Vsn),
 
-            Opts =
-                case application:get_env(erlfdb, network_options) of
-                    {ok, O} when is_list(O) -> O;
-                    undefined -> []
-                end,
+            Opts = network_options(NetworkOptions),
 
             lists:foreach(
                 fun(Option) ->
@@ -475,6 +477,14 @@ init() ->
 
             ok = erlfdb_setup_network()
     end.
+
+network_options([]) ->
+    case application:get_env(erlfdb, network_options) of
+        {ok, O} when is_list(O) -> O;
+        undefined -> []
+    end;
+network_options(Options) ->
+    Options.
 
 -define(NOT_LOADED, erlang:nif_error({erlfdb_nif_not_loaded, ?FILE, ?LINE})).
 
