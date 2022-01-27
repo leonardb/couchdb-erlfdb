@@ -13,11 +13,11 @@
 -module(erlfdb_nif).
 
 -compile(no_native).
-%%-on_load(init/0).
+-on_load(init/0).
 
 -export([
     init/0,
-    init/1,
+    init_manual/1,
 
     ohai/0,
 
@@ -435,9 +435,57 @@ option_val_to_binary(Val) when is_integer(Val) ->
     <<Val:8/little-unsigned-integer-unit:8>>.
 
 init() ->
-    init([]).
+    PrivDir =
+        case code:priv_dir(?MODULE) of
+            {error, _} ->
+                EbinDir = filename:dirname(code:which(?MODULE)),
+                AppPath = filename:dirname(EbinDir),
+                filename:join(AppPath, "priv");
+            Path ->
+                Path
+        end,
+    Auto = application:get_env(erlfdb, init, auto) =/= manual,
+    case Auto of
+        false ->
+            ok;
+        true ->
+            Status = erlang:load_nif(filename:join(PrivDir, "erlfdb_nif"), 0),
+            case Status of
+                ok ->
+                    true = erlfdb_can_initialize(),
 
-init(NetworkOptions) ->
+                    Vsn =
+                        case application:get_env(erlfdb, api_version) of
+                            {ok, V} -> V;
+                            undefined -> ?DEFAULT_API_VERSION
+                        end,
+                    ok = select_api_version(Vsn),
+
+                    Opts =
+                        case application:get_env(erlfdb, network_options) of
+                            {ok, O} when is_list(O) -> O;
+                            undefined -> []
+                        end,
+
+                    lists:foreach(
+                        fun(Option) ->
+                            case Option of
+                                Name when is_atom(Name) ->
+                                    ok = network_set_option(Name, <<>>);
+                                {Name, Value} when is_atom(Name) ->
+                                    ok = network_set_option(Name, Value)
+                            end
+                        end,
+                        Opts
+                    ),
+
+                    ok = erlfdb_setup_network();
+                Status ->
+                    Status
+            end
+    end.
+
+init_manual(NetworkOpts) ->
     PrivDir =
         case code:priv_dir(?MODULE) of
             {error, _} ->
@@ -448,10 +496,8 @@ init(NetworkOptions) ->
                 Path
         end,
     Status = erlang:load_nif(filename:join(PrivDir, "erlfdb_nif"), 0),
-    if
-        Status /= ok ->
-            Status;
-        true ->
+    case Status of
+        ok ->
             true = erlfdb_can_initialize(),
 
             Vsn =
@@ -460,8 +506,6 @@ init(NetworkOptions) ->
                     undefined -> ?DEFAULT_API_VERSION
                 end,
             ok = select_api_version(Vsn),
-
-            Opts = network_options(NetworkOptions),
 
             lists:foreach(
                 fun(Option) ->
@@ -472,19 +516,13 @@ init(NetworkOptions) ->
                             ok = network_set_option(Name, Value)
                     end
                 end,
-                Opts
+                NetworkOpts
             ),
 
-            ok = erlfdb_setup_network()
+            ok = erlfdb_setup_network();
+        Status ->
+            Status
     end.
-
-network_options([]) ->
-    case application:get_env(erlfdb, network_options) of
-        {ok, O} when is_list(O) -> O;
-        undefined -> []
-    end;
-network_options(Options) ->
-    Options.
 
 -define(NOT_LOADED, erlang:nif_error({erlfdb_nif_not_loaded, ?FILE, ?LINE})).
 
